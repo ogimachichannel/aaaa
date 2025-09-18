@@ -1,2 +1,96 @@
-<h1>こんにちは</h1>
-<h2>あなたは乗っ取られました</h2>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TextDrop | テキドロ</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: "Hiragino Maru Gothic Pro", "Noto Sans JP", sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f5e1c8;
+            color: #5a4a42;
+        }
+        textarea {
+            width: 90%;
+            height: 200px;
+            margin-top: 10px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: 2px solid #c2a98f;
+            padding: 10px;
+            background-color: #fff8ef;
+        }
+        #qrcode {
+            margin-top: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>テキストドロップ</h1>
+    <div id="qrcode"></div>
+    <p id="sessionIdDisplay"></p>
+    <textarea id="sharedText" placeholder="ここにテキストを入力..."></textarea>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const firebaseConfig = {
+                apiKey: "AIzaSyDYB85ij4gJH6ouCSMaZHCS2zC77T_1pfo",
+                authDomain: "textdrop-6f4e5.firebaseapp.com",
+                projectId: "textdrop-6f4e5",
+                storageBucket: "textdrop-6f4e5.appspot.com",
+                messagingSenderId: "1003920001497",
+                appId: "1:1003920001497:web:e7fe245971b54e808371c8",
+                measurementId: "G-2WV05QX9JX"
+            };
+
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            const db = firebase.firestore();
+
+            const textArea = document.getElementById("sharedText");
+            const qrCodeElement = document.getElementById("qrcode");
+            const sessionIdDisplay = document.getElementById("sessionIdDisplay");
+
+            const urlParams = new URLSearchParams(window.location.search);
+            let sessionId = urlParams.get("session");
+
+            if (!sessionId) {
+                sessionId = Math.random().toString(36).substring(2, 8);
+                window.history.replaceState(null, "", `?session=${sessionId}`);
+            }
+
+            sessionIdDisplay.textContent = `セッションID: ${sessionId}`;
+            const docRef = db.collection("sessions").doc(sessionId);
+
+            docRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    textArea.value = doc.data().content || "";
+                }
+            });
+
+            textArea.addEventListener("input", () => {
+                const now = firebase.firestore.FieldValue.serverTimestamp();
+                docRef.set({
+                    content: textArea.value,
+                    lastUpdated: now
+                }, { merge: true });
+            });
+
+            // 🔽 QRコードに固定URLを反映
+            const shareUrl = `https://ogimachichannel.github.io/TextDrop?session=${sessionId}`;
+            new QRCode(qrCodeElement, {
+                text: shareUrl,
+                width: 150,
+                height: 150
+            });
+        });
+    </script>
+</body>
+</html>
